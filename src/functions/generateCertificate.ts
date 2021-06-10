@@ -1,58 +1,74 @@
-import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
-import dayjs from "dayjs";
-import { readFileSync } from "fs";
-import { join } from "path";
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
+import { S3 } from 'aws-sdk';
+import dayjs from 'dayjs';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
-import { document } from "@utils/dynamoDBClient";
-import { generatePDF } from "@utils/generatePDF";
-import { parseTemplate } from "@utils/parseTemplate";
-import response from "@utils/response";
+import { document } from '@utils/dynamoDBClient';
+import { generatePDF } from '@utils/generatePDF';
+import { parseTemplate } from '@utils/parseTemplate';
+import response from '@utils/response';
 
 interface ICreateCertificate {
-  id: string;
-  name: string;
-  grade: string;
+    id: string;
+    name: string;
+    grade: string;
 }
 
 export const handle = async (
-  event: APIGatewayProxyEvent
+    event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
-  const { id, name, grade } = JSON.parse(event.body) as ICreateCertificate;
+    const { id, name, grade } = JSON.parse(event.body) as ICreateCertificate;
 
-  await document
-    .put({
-      TableName: "users_certificates",
-      Item: {
-        id,
-        name,
-        grade,
-      },
-    })
-    .promise();
+    await document
+        .put({
+            TableName: 'users_certificates',
+            Item: {
+                id,
+                name,
+                grade,
+            },
+        })
+        .promise();
 
-  const templatePath = join(
-    process.cwd(),
-    "src",
-    "templates",
-    "certificate.hbs"
-  );
+    const templatePath = join(
+        process.cwd(),
+        'src',
+        'templates',
+        'certificate.hbs'
+    );
 
-  const medalPath = join(process.cwd(), "src", "templates", "selo.png");
+    const medalPath = join(process.cwd(), 'src', 'templates', 'selo.png');
 
-  const medal = readFileSync(medalPath, "base64");
+    const medal = readFileSync(medalPath, 'base64');
 
-  const content = await parseTemplate({
-    path: templatePath,
-    variables: {
-      id,
-      name,
-      grade,
-      date: dayjs().format("DD/MM/YYYY"),
-      medal,
-    },
-  });
+    const content = await parseTemplate({
+        path: templatePath,
+        variables: {
+            id,
+            name,
+            grade,
+            date: dayjs().format('DD/MM/YYYY'),
+            medal,
+        },
+    });
 
-  await generatePDF(content);
+    const pdf = await generatePDF(content);
 
-  return response({ body: { message: "Certificate generated" }, status: 201 });
+    const s3 = new S3();
+
+    await s3
+        .putObject({
+            Bucket: 'ignite-storage',
+            Key: `${id}.pdf`,
+            ACL: 'public-read',
+            Body: pdf,
+            ContentType: 'application/pdf',
+        })
+        .promise();
+
+    return response({
+        body: { message: 'Certificate generated' },
+        status: 201,
+    });
 };
