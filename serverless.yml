@@ -5,6 +5,7 @@ plugins:
   - serverless-offline
   - serverless-webpack
   - serverless-dynamodb-local
+  - serverless-dotenv-plugin
 
 custom:
   webpack:
@@ -41,12 +42,14 @@ functions:
           path: generate
           method: POST
           cors: true
-    iamRoleStatements:
-      - Effect: Allow
-        Action:
-          - dynamodb:Query
-          - dynamodb:PutItem
-        Resource: "arn:aws:dynamodb:${self.provider.region}:*:table/users_certificates"
+    iam:
+      role:
+        statements:
+          - Effect: Allow
+            Action:
+              - dynamodb:Query
+              - dynamodb:PutItem
+            Resource: "arn:aws:dynamodb:${self.provider.region}:*:table/users_certificates"
   verifyCertificate:
     handler: src/functions/verifyCertificate.handle
     events:
@@ -54,11 +57,13 @@ functions:
           path: verify/{id}
           method: GET
           cors: true
-    iamRoleStatements:
-      - Effect: Allow
-        Action:
-          - dynamodb:Query
-        Resource: "arn:aws:dynamodb:${self.provider.region}:*:table/users_certificates"
+    iam:
+      role:
+        statements:
+          - Effect: Allow
+            Action:
+              - dynamodb:Query
+            Resource: "arn:aws:dynamodb:${self.provider.region}:*:table/users_certificates"
 
 resources:
   Resources:

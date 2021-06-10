@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { S3 } from 'aws-sdk';
 import dayjs from 'dayjs';
