@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { S3 } from 'aws-sdk';
 import dayjs from 'dayjs';
@@ -59,7 +60,7 @@ export const handle = async (
 
     await s3
         .putObject({
-            Bucket: 'ignite-storage',
+            Bucket: process.env.AWS_BUCKET,
             Key: `${id}.pdf`,
             ACL: 'public-read',
             Body: pdf,
@@ -68,7 +69,10 @@ export const handle = async (
         .promise();
 
     return response({
-        body: { message: 'Certificate generated' },
+        body: {
+            message: 'Certificate generated',
+            url: `https://${process.env.AWS_BUCKET}.s3.amazonaws.com/${id}.pdf`,
+        },
         status: 201,
     });
 };
