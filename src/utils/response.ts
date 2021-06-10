@@ -1,15 +1,19 @@
+import { APIGatewayProxyResult } from "aws-lambda";
 
 interface IResponse {
-    body: Record<string, any>,
-    status?: number;
+  body: Record<string, unknown>;
+  status?: number;
 }
 
-export function response({body, status}: IResponse) {
+export default function response({
+  body,
+  status = 200,
+}: IResponse): APIGatewayProxyResult {
   return {
-    statusCode: status || 200,
+    statusCode: status,
     body: JSON.stringify(body),
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
   };
 }
