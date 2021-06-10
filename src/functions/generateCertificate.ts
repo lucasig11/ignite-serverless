@@ -21,16 +21,30 @@ export const handle = async (
 ): Promise<APIGatewayProxyResult> => {
     const { id, name, grade } = JSON.parse(event.body) as ICreateCertificate;
 
-    await document
-        .put({
+    const findUser = await document
+        .query({
             TableName: 'users_certificates',
-            Item: {
-                id,
-                name,
-                grade,
+            KeyConditionExpression: 'id = :id',
+            ExpressionAttributeValues: {
+                ':id': id,
             },
         })
         .promise();
+
+    const [user] = findUser.Items;
+
+    if (!user) {
+        await document
+            .put({
+                TableName: 'users_certificates',
+                Item: {
+                    id,
+                    name,
+                    grade,
+                },
+            })
+            .promise();
+    }
 
     const templatePath = join(
         process.cwd(),
